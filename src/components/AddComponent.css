@@ -1,0 +1,23 @@
+.addComponent {
+  display: flex;
+}
+
+.addComponent-input {
+  width: 70%;
+  letter-spacing: 0.8px;
+  font-family: inherit;
+  padding: 0 10px;
+  border-radius: 10px 0px 0px 10px;
+  border: 1px solid #bbb;
+}
+
+.addComponent-button {
+  width: 30%;
+  font-family: inherit;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  background-color: white;
+  font-weight: 500;
+  border-radius: 0px 10px 10px 0px;
+  border: 1px solid #bbb;
+}
