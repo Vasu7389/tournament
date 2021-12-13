@@ -13,6 +13,9 @@
   padding: 20px;
   background-color: #fff;
   border-radius: 18px;
+  overflow: scroll;
+  overflow-x: hidden;
+  height: 450px;
 }
 
 .tournament-detail-title {
@@ -34,6 +37,7 @@
   box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
   border-radius: 18px;
   background-color: #fff;
+  height: 450px;
   padding: 20px 0px 20px 20px;
 }
 
@@ -53,4 +57,5 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
+  margin: 5px 0px;
 }
