@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./HomePage.css";
-import { tournaments } from "../mock/Tournaments";
+import { mockTournaments } from "../mock/Tournaments";
 import AddComponent from "./AddComponent";
+import CardComponent from "./common/CardComponent";
 
 function HomePage() {
-  const [tournamentList, setTournamentList] = useState([...tournaments]);
+  const [tournamentList, setTournamentList] = useState([...mockTournaments]);
 
   const addTournament = (tournamentName) => {
     const tournamentObj = {
@@ -28,13 +29,18 @@ function HomePage() {
         inputPlaceholder="Tournament Title"
         buttonText="Add Tournament"
       />
-      <ul className="homepage-list">
-        {tournamentList.map((tournament) => (
-          <li key={tournament.id}>
-            <Link to={`/tournament/${tournament.id}`}>{tournament.name}</Link>
-          </li>
+      <div className="homepage-list">
+        {tournamentList.map((tournament, index) => (
+          <Link to={`/tournament/${tournament.id}`}>
+            <CardComponent
+              key={tournament.id}
+              backgroundColor={"rgb(41, 75, 138)"}
+            >
+              {tournament.name}
+            </CardComponent>
+          </Link>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

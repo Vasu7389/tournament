@@ -16,6 +16,8 @@
 }
 
 .homepage-list {
-  margin: 30px 0px;
-  font-size: 1.5rem;
+  margin: 30px;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
 }

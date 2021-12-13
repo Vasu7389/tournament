@@ -1,33 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { tournaments } from "../mock/Tournaments";
+import { mockTournaments } from "../mock/Tournaments";
 import AddComponent from "./AddComponent";
 import ButtonComponent from "./common/ButtonComponent";
 import TableComponent from "./common/TableComponent";
 import "./TournamentDetail.css";
 
-const tment =
-  localStorage.getItem("tournament") &&
-  JSON.parse(localStorage.getItem("tournament"));
-
 const matchesLS =
   localStorage.getItem("matches") &&
   JSON.parse(localStorage.getItem("matches"));
 
+const pointsTableLS =
+  localStorage.getItem("pointsTableLS") &&
+  JSON.parse(localStorage.getItem("pointsTableLS"));
+
 function TournamentDetail() {
   let params = useParams();
   const [matches, setMatches] = useState(matchesLS || []);
-
   const [tournament, setTournament] = useState(
-    tment ||
-      tournaments.find((tournament) => tournament.id === parseInt(params.id))
+    mockTournaments.find((tournament) => tournament.id === parseInt(params.id))
   );
+  const [pointsTable, setPointsTable] = useState(pointsTableLS || []);
 
-  //each time tournament gets updated, add that to localstorage
   useEffect(() => {
-    localStorage.setItem("tournament", JSON.stringify(tournament));
+    localStorage.setItem("pointsTableLS", JSON.stringify(pointsTable));
     localStorage.setItem("matches", JSON.stringify(matches));
-  }, [tournament, matches]);
+  }, [pointsTable, matches]);
 
   const addPlayers = (player) => {
     const temp = { ...tournament };
@@ -35,14 +33,6 @@ function TournamentDetail() {
     temp.players.push({
       id: 1001 + tournament.players.length,
       name: player,
-      MP: 0,
-      W: 0,
-      D: 0,
-      L: 0,
-      GF: 0,
-      GA: 0,
-      GD: 0,
-      Pts: 0,
     });
 
     setTournament({ ...temp });
@@ -51,62 +41,101 @@ function TournamentDetail() {
   const generateFixtures = () => {
     const players = tournament.players;
     const temp = [];
+    const pointsTable = [];
     for (let i = 0; i < players.length; i++) {
       for (let j = i + 1; j < players.length; j++) {
         temp.push({
           matchId: ++matches.length,
-          playerA: players[i],
-          playerB: players[j],
+          playerA: { ...players[i], goal: 0 },
+          playerB: { ...players[j], goal: 0 },
           winner: 0,
-          goalOfA: 0,
-          goalOfB: 0,
           isDone: false,
         });
       }
+
+      //parallely create points table for each player
+      pointsTable.push({
+        playerName: players[i].name,
+        playerId: players[i].id,
+        MP: 0,
+        W: 0,
+        D: 0,
+        L: 0,
+        GF: 0,
+        GA: 0,
+        GD: 0,
+        Pts: 0,
+      });
     }
 
+    setPointsTable(pointsTable);
     setMatches([...temp]);
-    setTournament(
-      tournaments.find((tournament) => tournament.id === parseInt(params.id))
-    );
   };
 
-  const updateMatch = (match) => {
+  const resetTournament = () => {};
+
+  const updateMatch = (match, resetMatch = false) => {
     const temp = [...matches];
     const index = temp.findIndex((m) => m.matchId === match.matchId);
     temp[index] = match;
     setMatches([...temp]);
 
-    const tment = { ...tournament };
-    const playerA = tment.players.find((pl) => match.playerA.id === pl.id);
-    const playerB = tment.players.find((pl) => match.playerB.id === pl.id);
+    if (match.isDone || resetMatch) {
+      const pntsTable = [...pointsTable];
+      const playerA = pntsTable.find((pl) => match.playerA.id === pl.playerId);
+      const playerB = pntsTable.find((pl) => match.playerB.id === pl.playerId);
 
-    if (match.isDone) {
-      playerA.MP++;
-      playerB.MP++;
-      if (match.winner === playerA.id) {
-        playerA.W++;
-        playerB.L++;
-        playerA.Pts = playerA.Pts + 3;
-      } else if (match.winner === playerB.id) {
-        playerB.W++;
-        playerA.L++;
-        playerB.Pts = playerB.Pts + 3;
-      } else {
-        playerA.D++;
-        playerB.D++;
-        playerB.Pts = playerB.Pts + 1;
-        playerA.Pts = playerA.Pts + 1;
-      }
-      playerA.GF = playerA.GF + match.goalOfA;
-      playerA.GA = playerA.GA + match.goalOfB;
-      playerB.GF = playerB.GF + match.goalOfB;
-      playerB.GA = playerB.GA + match.goalOfA;
-      playerA.GD = playerA.GF - playerA.GA;
-      playerB.GD = playerB.GF - playerB.GA;
+      updatePlayerStats(playerA);
+      updatePlayerStats(playerB);
 
-      setTournament(tment);
+      setPointsTable(pntsTable);
     }
+  };
+
+  const updatePlayerStats = (player) => {
+    const playerMatches = matches.filter(
+      (m) =>
+        (m.playerA.id === player.playerId ||
+          m.playerB.id === player.playerId) &&
+        m.isDone
+    );
+
+    player.MP = playerMatches.length;
+    let playerWins = 0;
+    let playerDraws = 0;
+    let playerLoss = 0;
+    let playerGF = 0;
+    let playerGA = 0;
+    let playerPts = 0;
+    for (let i = 0; i < playerMatches.length; i++) {
+      if (playerMatches[i].winner === 0) {
+        playerDraws++;
+        playerPts = playerPts + 1;
+      } else if (playerMatches[i].winner === player.playerId) {
+        playerWins++;
+        playerPts = playerPts + 3;
+      } else playerLoss++;
+
+      playerGF +=
+        playerMatches[i].playerA.id === player.playerId
+          ? playerMatches[i].playerA.goal
+          : playerMatches[i].playerB.goal;
+
+      playerGA +=
+        playerMatches[i].playerA.id !== player.playerId
+          ? playerMatches[i].playerA.goal
+          : playerMatches[i].playerB.goal;
+    }
+
+    player.W = playerWins;
+    player.D = playerDraws;
+    player.L = playerLoss;
+    player.GF = playerGF;
+    player.GA = playerGA;
+    player.GD = playerGF - playerGA;
+    player.Pts = playerPts;
+
+    return player;
   };
 
   const updateWinner = (playerId, matchId) => {
@@ -119,7 +148,7 @@ function TournamentDetail() {
   const updateMatchGoal = (matchId, playerId) => {
     const match = matches.find((match) => match.matchId === matchId);
     match.isDone = false;
-    match.playerA.id === playerId ? match.goalOfA++ : match.goalOfB++;
+    match.playerA.id === playerId ? match.playerA.goal++ : match.playerB.goal++;
     updateMatch(match);
   };
 
@@ -128,6 +157,15 @@ function TournamentDetail() {
     match.isDone = true;
     match.winner = 0;
     updateMatch(match);
+  };
+
+  const handleMatchReset = (matchId) => {
+    const match = matches.find((match) => match.matchId === matchId);
+    match.winner = 0;
+    match.playerA.goal = 0;
+    match.playerB.goal = 0;
+    match.isDone = false;
+    updateMatch(match, true);
   };
 
   return (
@@ -159,7 +197,12 @@ function TournamentDetail() {
           >
             Generate Fixtures
           </ButtonComponent>
-          <ButtonComponent height="40px" width="150px" type="submit">
+          <ButtonComponent
+            height="40px"
+            width="150px"
+            type="submit"
+            onClick={resetTournament}
+          >
             Reset Tournament
           </ButtonComponent>
         </div>
@@ -187,15 +230,15 @@ function TournamentDetail() {
                     updateMatchGoal(match.matchId, match.playerA.id)
                   }
                 >
-                  {match.goalOfA}
-                </ButtonComponent>{" "}
+                  {match.playerA.goal}
+                </ButtonComponent>
                 -
                 <ButtonComponent
                   onClick={() =>
                     updateMatchGoal(match.matchId, match.playerB.id)
                   }
                 >
-                  {match.goalOfB}
+                  {match.playerB.goal}
                 </ButtonComponent>
                 <ButtonComponent
                   onClick={() => updateWinner(match.playerB.id, match.matchId)}
@@ -220,25 +263,32 @@ function TournamentDetail() {
                 >
                   Draw
                 </ButtonComponent>
+                <ButtonComponent
+                  onClick={() => handleMatchReset(match.matchId)}
+                >
+                  <i className="fa fa-refresh"></i>
+                </ButtonComponent>
               </div>
             ))}
         </div>
       </div>
       <div className="tournament-detail-table">
-        <TableComponent
-          columns={["Club", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]}
-          rows={tournament.players.map((t) => [
-            t.name,
-            t.MP,
-            t.W,
-            t.D,
-            t.L,
-            t.GF,
-            t.GA,
-            t.GD,
-            t.Pts,
-          ])}
-        />
+        {pointsTable.length > 0 && (
+          <TableComponent
+            columns={["Club", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]}
+            rows={pointsTable.map((t) => [
+              t.playerName,
+              t.MP,
+              t.W,
+              t.D,
+              t.L,
+              t.GF,
+              t.GA,
+              t.GD,
+              t.Pts,
+            ])}
+          />
+        )}
       </div>
     </div>
   );

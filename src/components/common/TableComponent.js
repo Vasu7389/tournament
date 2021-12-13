@@ -15,15 +15,15 @@ function TableComponent({ columns = [], rows = [] }) {
       <thead>
         <tr style={{ fontWeight: 700 }}>
           {columns.map((column) => (
-            <td>{column}</td>
+            <td key={column}>{column}</td>
           ))}
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr>
-            {row.map((item) => (
-              <td>{item}</td>
+        {rows.map((row, index) => (
+          <tr key={index}>
+            {row.map((item, ind) => (
+              <td key={ind}>{item}</td>
             ))}
           </tr>
         ))}
