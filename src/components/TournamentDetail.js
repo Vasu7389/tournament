@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { mockTournaments } from "../mock/Tournaments";
 import AddComponent from "./AddComponent";
 import ButtonComponent from "./common/ButtonComponent";
+import CardComponent from "./common/CardComponent";
 import TableComponent from "./common/TableComponent";
 import "./TournamentDetail.css";
 
@@ -14,6 +15,12 @@ const pointsTableLS =
   localStorage.getItem("pointsTableLS") &&
   JSON.parse(localStorage.getItem("pointsTableLS"));
 
+const SECTIONS = {
+  PLAYERS: "Players",
+  MATCHES: "Matches",
+  TABLE: "Table",
+};
+
 function TournamentDetail() {
   let params = useParams();
   const [matches, setMatches] = useState(matchesLS || []);
@@ -21,11 +28,18 @@ function TournamentDetail() {
     mockTournaments.find((tournament) => tournament.id === parseInt(params.id))
   );
   const [pointsTable, setPointsTable] = useState(pointsTableLS || []);
+  const [currentSectionInUI, setCurrentSectionInUI] = useState(
+    SECTIONS.PLAYERS
+  );
 
   useEffect(() => {
     localStorage.setItem("pointsTableLS", JSON.stringify(pointsTable));
     localStorage.setItem("matches", JSON.stringify(matches));
   }, [pointsTable, matches]);
+
+  useEffect(() => {
+    generateFixtures();
+  }, [tournament]);
 
   const addPlayers = (player) => {
     const temp = { ...tournament };
@@ -36,6 +50,7 @@ function TournamentDetail() {
     });
 
     setTournament({ ...temp });
+    generateFixtures();
   };
 
   const generateFixtures = () => {
@@ -71,8 +86,6 @@ function TournamentDetail() {
     setPointsTable(pointsTable);
     setMatches([...temp]);
   };
-
-  const resetTournament = () => {};
 
   const updateMatch = (match, resetMatch = false) => {
     const temp = [...matches];
@@ -168,126 +181,151 @@ function TournamentDetail() {
     updateMatch(match, true);
   };
 
+  const handleDeletePlayer = (playerId) => {
+    const tmnt = { ...tournament };
+    const player = tmnt.players.find((p) => p.id === playerId);
+    const index = tmnt.players.indexOf(player);
+    if (index > -1) {
+      tmnt.players.splice(index, 1);
+    }
+    setTournament(tmnt);
+  };
+
   return (
     <div className="tournament-detail-container">
-      <div className="tournament-details">
-        <h3 className="tournament-detail-title">{tournament.name}</h3>
-        <AddComponent
-          listHandler={addPlayers}
-          buttonText="Add Players"
-          width="400px"
-          height="50px"
-          inputPlaceholder="Player Name"
-        />
-        <div style={{ margin: "20px 0px" }}>
-          {tournament &&
-            tournament.players.map((player, index) => (
-              <span key={player.id}>
-                {player.name}
-                {index !== tournament.players.length - 1 && <span>,</span>}{" "}
-              </span>
-            ))}
-        </div>
-        <div className="tournament-detail-operations">
-          <ButtonComponent
-            height="40px"
-            width="150px"
-            onClick={generateFixtures}
-            type="submit"
+      <div className="tournament-detail-navbar">
+        {Object.keys(SECTIONS).map((prop) => (
+          <div
+            key={prop}
+            className="tournament-detail-section-name"
+            onClick={() => setCurrentSectionInUI(SECTIONS[prop])}
           >
-            Generate Fixtures
-          </ButtonComponent>
-          <ButtonComponent
-            height="40px"
-            width="150px"
-            type="submit"
-            onClick={resetTournament}
-          >
-            Reset Tournament
-          </ButtonComponent>
-        </div>
-        <div className="tournament-detail-match-list">
-          {matches &&
-            matches.map((match) => (
-              <div className="tournament-detail-match" key={match.matchId}>
-                <ButtonComponent
-                  onClick={() => updateWinner(match.playerA.id, match.matchId)}
-                  type="submit"
-                  height="30px"
-                  width="100px"
-                  backgroundColor={
-                    match.winner !== 0 && match.winner === match.playerA.id
-                      ? "lightgreen"
-                      : match.winner !== 0
-                      ? "#ebb4b4"
-                      : null
-                  }
-                >
-                  {match.playerA.name}
-                </ButtonComponent>
-                <ButtonComponent
-                  onClick={() =>
-                    updateMatchGoal(match.matchId, match.playerA.id)
-                  }
-                >
-                  {match.playerA.goal}
-                </ButtonComponent>
-                -
-                <ButtonComponent
-                  onClick={() =>
-                    updateMatchGoal(match.matchId, match.playerB.id)
-                  }
-                >
-                  {match.playerB.goal}
-                </ButtonComponent>
-                <ButtonComponent
-                  onClick={() => updateWinner(match.playerB.id, match.matchId)}
-                  type="submit"
-                  height="30px"
-                  width="100px"
-                  backgroundColor={
-                    match.winner === match.playerB.id
-                      ? "lightgreen"
-                      : match.winner !== 0
-                      ? "#ebb4b4"
-                      : null
-                  }
-                >
-                  {match.playerB.name}
-                </ButtonComponent>
-                <ButtonComponent
-                  onClick={() => handleMatchDraw(match.matchId)}
-                  backgroundColor={
-                    match.isDone && match.winner === 0 && "lightgreen"
-                  }
-                >
-                  Draw
-                </ButtonComponent>
-                <ButtonComponent
-                  onClick={() => handleMatchReset(match.matchId)}
-                >
-                  <i className="fa fa-refresh"></i>
-                </ButtonComponent>
-              </div>
-            ))}
-        </div>
+            {SECTIONS[prop]}
+          </div>
+        ))}
       </div>
-      <div className="tournament-detail-table">
-        {pointsTable.length > 0 && (
-          <TableComponent
-            columns={["Club", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]}
-            rows={pointsTable.map((t) => [
-              t.playerName,
-              t.MP,
-              t.W,
-              t.D,
-              t.L,
-              t.GF,
-              t.GA,
-              t.GD,
-              t.Pts,
-            ])}
-          />
+      <div className="tournament-detail-sections">
+        {currentSectionInUI === SECTIONS.PLAYERS && (
+          <CardComponent fontWeight="500" width="50%">
+            <h3 className="tournament-detail-title">{tournament.name}</h3>
+            <AddComponent
+              listHandler={addPlayers}
+              buttonText="Add Players"
+              width="400px"
+              height="50px"
+              inputPlaceholder="Player Name"
+            />
+            <div className="tournament-player-list">
+              {tournament &&
+                tournament.players.map((player, index) => (
+                  <div className="tournament-player-detail" key={player.id}>
+                    <span>
+                      #{index + 1}&nbsp;&nbsp;
+                      {player.name}
+                    </span>
+                    <span>
+                      <i
+                        onClick={() => handleDeletePlayer(player.id)}
+                        className="fa fa-trash"
+                      ></i>
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </CardComponent>
+        )}
+        {currentSectionInUI === SECTIONS.MATCHES && (
+          <CardComponent fontWeight="500" width="50%">
+            <div className="tournament-detail-match-list">
+              {matches &&
+                matches.map((match) => (
+                  <div className="tournament-detail-match" key={match.matchId}>
+                    <ButtonComponent
+                      onClick={() =>
+                        updateWinner(match.playerA.id, match.matchId)
+                      }
+                      type="submit"
+                      height="30px"
+                      width="100px"
+                      backgroundColor={
+                        match.winner !== 0 && match.winner === match.playerA.id
+                          ? "lightgreen"
+                          : match.winner !== 0
+                          ? "#ebb4b4"
+                          : null
+                      }
+                    >
+                      {match.playerA.name}
+                    </ButtonComponent>
+                    <ButtonComponent
+                      onClick={() =>
+                        updateMatchGoal(match.matchId, match.playerA.id)
+                      }
+                    >
+                      {match.playerA.goal}
+                    </ButtonComponent>
+                    -
+                    <ButtonComponent
+                      onClick={() =>
+                        updateMatchGoal(match.matchId, match.playerB.id)
+                      }
+                    >
+                      {match.playerB.goal}
+                    </ButtonComponent>
+                    <ButtonComponent
+                      onClick={() =>
+                        updateWinner(match.playerB.id, match.matchId)
+                      }
+                      type="submit"
+                      height="30px"
+                      width="100px"
+                      backgroundColor={
+                        match.winner === match.playerB.id
+                          ? "lightgreen"
+                          : match.winner !== 0
+                          ? "#ebb4b4"
+                          : null
+                      }
+                    >
+                      {match.playerB.name}
+                    </ButtonComponent>
+                    <ButtonComponent
+                      onClick={() => handleMatchDraw(match.matchId)}
+                      backgroundColor={
+                        match.isDone && match.winner === 0 && "lightgreen"
+                      }
+                    >
+                      Draw
+                    </ButtonComponent>
+                    <ButtonComponent
+                      onClick={() => handleMatchReset(match.matchId)}
+                    >
+                      <i className="fa fa-refresh"></i>
+                    </ButtonComponent>
+                  </div>
+                ))}
+            </div>
+          </CardComponent>
+        )}
+        {currentSectionInUI === SECTIONS.TABLE && (
+          <CardComponent fontWeight="500" width="50%">
+            {pointsTable.length > 0 && (
+              <TableComponent
+                columns={["Club", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]}
+                rows={pointsTable.map((t) => [
+                  t.playerName,
+                  t.MP,
+                  t.W,
+                  t.D,
+                  t.L,
+                  t.GF,
+                  t.GA,
+                  t.GD,
+                  t.Pts,
+                ])}
+              />
+            )}
+          </CardComponent>
         )}
       </div>
     </div>

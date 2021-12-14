@@ -31,11 +31,8 @@ function HomePage() {
       />
       <div className="homepage-list">
         {tournamentList.map((tournament, index) => (
-          <Link to={`/tournament/${tournament.id}`}>
-            <CardComponent
-              key={tournament.id}
-              backgroundColor={"rgb(41, 75, 138)"}
-            >
+          <Link to={`/tournament/${tournament.id}`} key={tournament.id}>
+            <CardComponent backgroundColor={"rgb(41, 75, 138)"} color="white">
               {tournament.name}
             </CardComponent>
           </Link>
