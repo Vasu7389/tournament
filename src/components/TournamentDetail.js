@@ -15,6 +15,14 @@ const pointsTableLS =
   localStorage.getItem("pointsTableLS") &&
   JSON.parse(localStorage.getItem("pointsTableLS"));
 
+const tournamentLS =
+  localStorage.getItem("tournamentLS") &&
+  JSON.parse(localStorage.getItem("tournamentLS"));
+
+const sectionLS =
+  localStorage.getItem("sectionLS") &&
+  JSON.parse(localStorage.getItem("sectionLS"));
+
 const SECTIONS = {
   PLAYERS: "Players",
   MATCHES: "Matches",
@@ -25,21 +33,25 @@ function TournamentDetail() {
   let params = useParams();
   const [matches, setMatches] = useState(matchesLS || []);
   const [tournament, setTournament] = useState(
-    mockTournaments.find((tournament) => tournament.id === parseInt(params.id))
+    tournamentLS ||
+      mockTournaments.find(
+        (tournament) => tournament.id === parseInt(params.id)
+      )
   );
   const [pointsTable, setPointsTable] = useState(pointsTableLS || []);
   const [currentSectionInUI, setCurrentSectionInUI] = useState(
-    SECTIONS.PLAYERS
+    sectionLS || SECTIONS.PLAYERS
   );
 
   useEffect(() => {
     localStorage.setItem("pointsTableLS", JSON.stringify(pointsTable));
     localStorage.setItem("matches", JSON.stringify(matches));
-  }, [pointsTable, matches]);
+    localStorage.setItem("tournamentLS", JSON.stringify(tournament));
+  }, [pointsTable, matches, tournament]);
 
   useEffect(() => {
-    generateFixtures();
-  }, [tournament]);
+    localStorage.setItem("sectionLS", JSON.stringify(currentSectionInUI));
+  }, [currentSectionInUI]);
 
   const addPlayers = (player) => {
     const temp = { ...tournament };
@@ -52,6 +64,10 @@ function TournamentDetail() {
     setTournament({ ...temp });
     generateFixtures();
   };
+
+  useEffect(() => {
+    if (matches.length === 0) generateFixtures();
+  }, []);
 
   const generateFixtures = () => {
     const players = tournament.players;
@@ -84,7 +100,7 @@ function TournamentDetail() {
     }
 
     setPointsTable(pointsTable);
-    setMatches([...temp]);
+    setMatches(temp);
   };
 
   const updateMatch = (match, resetMatch = false) => {
@@ -147,15 +163,6 @@ function TournamentDetail() {
     player.GA = playerGA;
     player.GD = playerGF - playerGA;
     player.Pts = playerPts;
-
-    return player;
-  };
-
-  const updateWinner = (playerId, matchId) => {
-    const match = matches.find((match) => match.matchId === matchId);
-    match.isDone = true;
-    match.winner = playerId;
-    updateMatch(match);
   };
 
   const updateMatchGoal = (matchId, playerId) => {
@@ -165,10 +172,15 @@ function TournamentDetail() {
     updateMatch(match);
   };
 
-  const handleMatchDraw = (matchId) => {
+  const handleMatchFinish = (matchId) => {
     const match = matches.find((match) => match.matchId === matchId);
     match.isDone = true;
-    match.winner = 0;
+    let winner = 0;
+
+    if (match.playerA.goal > match.playerB.goal) winner = match.playerA.id;
+    else if (match.playerA.goal < match.playerB.goal) winner = match.playerB.id;
+
+    match.winner = winner;
     updateMatch(match);
   };
 
@@ -189,6 +201,7 @@ function TournamentDetail() {
       tmnt.players.splice(index, 1);
     }
     setTournament(tmnt);
+    generateFixtures();
   };
 
   return (
@@ -241,9 +254,7 @@ function TournamentDetail() {
                 matches.map((match) => (
                   <div className="tournament-detail-match" key={match.matchId}>
                     <ButtonComponent
-                      onClick={() =>
-                        updateWinner(match.playerA.id, match.matchId)
-                      }
+                      cursor="default"
                       type="submit"
                       height="30px"
                       width="100px"
@@ -273,9 +284,7 @@ function TournamentDetail() {
                       {match.playerB.goal}
                     </ButtonComponent>
                     <ButtonComponent
-                      onClick={() =>
-                        updateWinner(match.playerB.id, match.matchId)
-                      }
+                      cursor="default"
                       type="submit"
                       height="30px"
                       width="100px"
@@ -290,12 +299,10 @@ function TournamentDetail() {
                       {match.playerB.name}
                     </ButtonComponent>
                     <ButtonComponent
-                      onClick={() => handleMatchDraw(match.matchId)}
-                      backgroundColor={
-                        match.isDone && match.winner === 0 && "lightgreen"
-                      }
+                      onClick={() => handleMatchFinish(match.matchId)}
+                      backgroundColor={match.isDone && "lightgreen"}
                     >
-                      Draw
+                      <i className="fa fa-check"></i>
                     </ButtonComponent>
                     <ButtonComponent
                       onClick={() => handleMatchReset(match.matchId)}

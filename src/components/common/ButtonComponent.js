@@ -6,6 +6,7 @@ function ButtonComponent({
   width,
   fontSize,
   onClick,
+  cursor = "pointer",
   backgroundColor = "white",
 }) {
   //style
@@ -18,7 +19,7 @@ function ButtonComponent({
     borderRadius: "10px",
     fontWeight: 500,
     border: "1px solid #bbb",
-    cursor: "pointer",
+    cursor,
   };
   return (
     <button type="submit" style={style} onClick={onClick}>
